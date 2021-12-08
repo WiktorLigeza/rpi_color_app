@@ -1,8 +1,9 @@
 import time
+import random
 
 
 class Animator:
-    def __init__(self, colour_list=None, pm=None, time_step=100):
+    def __init__(self, colour_list=None, pm=None, time_step=10):
         if colour_list is None:
             colour_list = []
         self.colour_list = colour_list
@@ -11,11 +12,14 @@ class Animator:
         self.time_step = time_step
         self.loop = "loop"
         self.grid = 10000
-        self.speed = 1/self.time_step
+        self.speed = 1 / self.time_step
         self.steps = self.grid / self.time_step
         self.play_flag = False
         self.hex_to_rgb = None
         self.pm = pm
+        self.sparkling = False
+        self.color = None
+        self.amp = None
 
         self.R_steps = 0
         self.G_steps = 0
@@ -44,6 +48,9 @@ class Animator:
                 for i in range(len(self.colour_list) - 1):
                     self.animation(self.colour_list_rev[i], self.colour_list_rev[i + 1])
 
+        if self.loop == "sparks":
+            self.animate_sparks()
+
     def animation(self, from_color, to_color):
         self.from_rbg = self.hex_to_rgb(from_color.replace("#", ""))
         self.to_rbg = self.hex_to_rgb(to_color.replace("#", ""))
@@ -59,6 +66,37 @@ class Animator:
         print(from_color, " -> ", to_color, self.steps)
         self.transition()
 
+    @staticmethod
+    def apply_amp(color, amp):
+        amped = [x - x * amp for x in color]
+        for i in range(3):
+            if color[i] < 0: color[i] = 0
+        return amped
+
+    def play_breathing(self, color, amp):
+        amp = amp / 100
+        self.loop = "loop"
+        self.colour_list = []
+        self.colour_list_rev = []
+        self.colour_list.append("#{0:02x}{1:02x}{2:02x}".format(self.clamp(color[0]),
+                                                                self.clamp(color[1]), self.clamp(color[2])))
+        amped = self.apply_amp(color, amp)
+        self.colour_list.append("#{0:02x}{1:02x}{2:02x}".format(self.clamp(amped[0]),
+                                                                self.clamp(amped[1]), self.clamp(amped[2])))
+        self.colour_list.append("#{0:02x}{1:02x}{2:02x}".format(self.clamp(color[0]),
+                                                                self.clamp(color[1]), self.clamp(color[2])))
+        self.play_flag = True
+
+    def play_sparks(self, color, amp):
+        self.color = color
+        self.amp = amp
+        self.sparkling = True
+
+    def animate_sparks(self):
+        while self.sparkling:
+            amped = self.apply_amp(self.color, random.randint(1, self.amp)/100)
+            self.show_color(amped)
+
     def show_color(self, color):
         self.pm.set_RGB(*color)
         time.sleep(self.speed)
@@ -73,3 +111,7 @@ class Animator:
             if not self.play_flag:
                 break
 
+    @staticmethod
+    def clamp(x):
+        x = int(x)
+        return max(0, min(x, 255))

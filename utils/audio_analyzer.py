@@ -1,6 +1,7 @@
 import pyaudio
 import struct
 import numpy as np
+from utils import GPIO_manager as gm
 
 
 class AudioAnalyzer:
@@ -12,6 +13,10 @@ class AudioAnalyzer:
         self.RATE = 44100  # samples per second
         self.stream = self.init_stream()
         self.color = None
+        self.pm = gm.PinsManager()
+        self.pm.R_pin = 27
+        self.pm.G_pin = 22
+        self.pm.B_pin = 17
 
     def init_stream(self):
         p = pyaudio.PyAudio()
@@ -23,7 +28,7 @@ class AudioAnalyzer:
                       frames_per_buffer=self.CHUNK)
 
     def show_color(self):
-        image = self.create_blank(300, 300, self.color)
+        self.pm.set_RGB(*self.color)
 
     def animator(self):
         while True:
@@ -39,9 +44,5 @@ class AudioAnalyzer:
             self.show_color()
 
 
-    @staticmethod
-    def create_blank(width, height, rgb_color=(0, 0, 0)):
-        image = np.zeros((height, width, 3), np.uint8)
-        color = tuple(reversed(rgb_color))
-        image[:] = color
-        return image
+
+aa = AudioAnalyzer()

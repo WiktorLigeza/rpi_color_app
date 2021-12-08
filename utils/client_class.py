@@ -9,6 +9,7 @@ from utils import GPIO_manager as gm
 from threading import Thread
 import os
 
+
 # build bin string:
 # pyinstaller main.py --onefile --hidden-import=websockets --hidden-import=websockets.legacy
 # --hidden-import=websockets.legacy.client
@@ -68,6 +69,30 @@ class Client:
             print(str(e))
         return obj
 
+    def stop_animator(self):
+        if self.animator.play_flag or self.animator.sparkling:
+            print("stopping animation")
+            self.animator.play_flag = False
+            self.animator.sparkling = False
+            self.thread.join()
+            self.thread = None
+
+    def single_color_handler(self, dict_msg):
+        color = dict_msg["payload"]["color"]
+        if dict_msg["payload"]["loop"] == "steady":
+            self.show_color(dict_msg["payload"]["color"])
+        if dict_msg["payload"]["loop"] == "dimming":
+            self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animator.play_breathing(self.hex_to_rgb(color.replace("#", "")),
+                                         amp=int(dict_msg["payload"]["brightness"]))
+            self.run_thread()
+        if dict_msg["payload"]["loop"] == "sparks":
+            self.animator.loop = "sparks"
+            self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animator.play_sparks(self.hex_to_rgb(color.replace("#", "")),
+                                      amp=int(dict_msg["payload"]["brightness"]))
+            self.run_thread()
+
     async def listen(self):
         msg = self.get_last_state()
         print("connecting..")
@@ -87,26 +112,17 @@ class Client:
                             try:
                                 if type_of_data == 1:
                                     self.msg = msg
-                                    if self.animator.play_flag:
-                                        print("stopping animation")
-                                        self.animator.play_flag = False
-                                        self.thread.join()
-                                        self.thread = None
-                                    self.show_color(dict_msg["payload"]["color"])
+                                    self.stop_animator()
+                                    self.single_color_handler(dict_msg)
 
                                 if type_of_data == 2:
                                     self.msg = msg
                                     print("mood")
-                                    if self.animator.play_flag:
-                                        print("stopping animation")
-                                        self.animator.play_flag = False
-                                        self.thread.join()
-                                        self.thread = None
-                                    # cv2.destroyWindow("led representation single")
+                                    self.stop_animator()
                                     print(dict_msg["payload"]["color_list"].split(","))
                                     self.animator.colour_list = dict_msg["payload"]["color_list"].split(",")
                                     self.animator.time_step = dict_msg["payload"]["speed"]
-                                    self.animator.speed = 1/int(dict_msg["payload"]["speed"])
+                                    self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
                                     self.animator.loop = dict_msg["payload"]["loop"]
                                     self.animator.play_flag = True
                                     self.run_thread()
