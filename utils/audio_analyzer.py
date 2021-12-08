@@ -1,7 +1,6 @@
 import pyaudio
 import struct
 import numpy as np
-import cv2
 
 
 class AudioAnalyzer:
@@ -25,7 +24,6 @@ class AudioAnalyzer:
 
     def show_color(self):
         image = self.create_blank(300, 300, self.color)
-        cv2.imshow("led representation single", image)
 
     def animator(self):
         while True:
@@ -40,9 +38,6 @@ class AudioAnalyzer:
             self.color = [0, power_median, power_mean]
             self.show_color()
 
-            if cv2.waitKey(1) == 27:
-                print("the end")
-                break
 
     @staticmethod
     def create_blank(width, height, rgb_color=(0, 0, 0)):

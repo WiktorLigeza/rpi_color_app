@@ -13,6 +13,7 @@ def print_manual():
 
 
 if __name__ == '__main__':
+    client = None
     try:
         main_script = str(os.getcwd()) + "/launcher.sh"
         if len(sys.argv) > 2:
@@ -42,10 +43,15 @@ if __name__ == '__main__':
                 print("addcron")
                 login(client, credentials=False, GPIO_=False, on_start=True)
 
+            elif sys.argv[1] == "--stop":
+                print("stopping")
+
             else:
                 print("wrong argument")
                 print_manual()
 
     except KeyboardInterrupt:
         print(f'KeyboardInterrupt, cleaning pins')
+        if client is not None:
+            client.set_last_state()
         gm.PinsManager.clean()

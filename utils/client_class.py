@@ -9,6 +9,10 @@ from utils import GPIO_manager as gm
 from threading import Thread
 import os
 
+# build bin string:
+# pyinstaller main.py --onefile --hidden-import=websockets --hidden-import=websockets.legacy
+# --hidden-import=websockets.legacy.client
+
 
 class Client:
 
@@ -21,6 +25,7 @@ class Client:
         self.first = True
         self.global_path = os.getcwd()
         self.thread = None
+        self.msg = None
         self.pm = gm.PinsManager()
         self.animator = Animator(
             ["#00108a", "#152bd1", "#4454ca", "#4454ca", "#9b44ca", "#7319a4", "#550580", "#410462"],
@@ -47,7 +52,24 @@ class Client:
         cm.set_configs(self)
         print(self.rPi_TAG)
 
+    def set_last_state(self):
+        if self.msg is not None:
+            print("saving last state as: ", self.msg)
+            with open(os.path.join(self.global_path, "configs", 'last_state.json'), 'w') as outfile:
+                json.dump(self.msg, outfile)
+
+    def get_last_state(self):
+        print("loading last state")
+        obj = None
+        try:
+            f = open(os.path.join(self.global_path, "configs", 'last_state.json'))
+            obj = json.load(f)
+        except Exception as e:
+            print(str(e))
+        return obj
+
     async def listen(self):
+        msg = self.get_last_state()
         print("connecting..")
         while True:
             try:
@@ -58,11 +80,13 @@ class Client:
                             msg_ = {"head": "first_connection", "TAG": self.rPi_TAG}
                             await ws.send(json.dumps(msg_))
                             self.first = False
-                        msg = await ws.recv()
+                        else:
+                            msg = await ws.recv()
                         type_of_data, dict_msg = self.validate_data(msg)
                         if type_of_data != -1:
                             try:
                                 if type_of_data == 1:
+                                    self.msg = msg
                                     if self.animator.play_flag:
                                         print("stopping animation")
                                         self.animator.play_flag = False
@@ -71,6 +95,7 @@ class Client:
                                     self.show_color(dict_msg["payload"]["color"])
 
                                 if type_of_data == 2:
+                                    self.msg = msg
                                     print("mood")
                                     if self.animator.play_flag:
                                         print("stopping animation")
@@ -108,6 +133,7 @@ class Client:
                         else:
                             print("invalid data")
             except Exception as e:
+                self.set_last_state()
                 print(e)
                 time.sleep(5)
                 self.first = True
