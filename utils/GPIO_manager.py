@@ -25,9 +25,9 @@ class PinsManager:
         self.pwm_red = GPIO.PWM(self.R_pin, self.hz)
         self.pwm_green = GPIO.PWM(self.G_pin, self.hz)
         self.pwm_blue = GPIO.PWM(self.B_pin, self.hz)
-        self.pwm_green.start(50)
-        self.pwm_red.start(50)
-        self.pwm_blue.start(50)
+        self.pwm_green.start(0)
+        self.pwm_red.start(0)
+        self.pwm_blue.start(0)
 
     def set_RGB(self, R, G, B):
         R = R/255 * 100

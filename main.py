@@ -3,6 +3,10 @@ import os
 import sys
 from utils.credentials_manager import login
 from utils import GPIO_manager as gm
+import atexit
+import subprocess
+
+TERMINATE = True
 
 
 def print_manual():
@@ -12,8 +16,16 @@ def print_manual():
           " to set application on reboot, type: rpiApp --addcron \n")
 
 
+def at_exit():
+    global TERMINATE
+    if TERMINATE:
+        print(f'\n Process has been terminated, cleaning pins')
+        gm.PinsManager.clean()
+
+
 if __name__ == '__main__':
     client = None
+    atexit.register(at_exit)
     try:
         main_script = str(os.getcwd()) + "/launcher.sh"
         if len(sys.argv) > 2:
@@ -21,37 +33,69 @@ if __name__ == '__main__':
         if len(sys.argv) <= 1:
             print_manual()
         else:
-            client = Client(main_script)
-            client.get_configs()
-            if sys.argv[1] == "--run":
+            if sys.argv[1] == "--stop":
+                client = Client(main_script)
+                client.get_configs()
+                print("stopping..")
+                try:
+                    kpids = subprocess.check_output(['pgrep', '-f', 'main']).decode().split("\n")
+                    print("cleaning pins..")
+                    gm.PinsManager.clean()
+                except subprocess.CalledProcessError as e:
+                    print("pgrep failed because ({}):".format(e.returncode), e.output.decode())
+                else:
+                    for pid_ in kpids:
+                        if pid_ != '':
+                            try:
+                                os.kill(int(pid_), 9)
+                                print(f"Process with pid {pid_} has been terminated")
+                            except ProcessLookupError as e:
+                                print("We tried to kill an old entry.")
+                            except ValueError as e:
+                                print(f"Well, there's no process with pid {pid_}...so...yeah.")
+                quit()
+
+            elif sys.argv[1] == "--run":
+                client = Client(main_script)
+                client.get_configs()
                 client.start()
                 print("run")
 
             elif sys.argv[1] == "--credentials":
+                client = Client(main_script)
+                client.get_configs()
                 print("set credentials")
                 login(client, credentials=True, GPIO_=False, on_start=False)
+                gm.PinsManager.clean()
 
             elif sys.argv[1] == "--GPIO":
+                client = Client(main_script)
+                client.get_configs()
                 print("set GPIO")
                 login(client, credentials=False, GPIO_=True, on_start=False)
+                gm.PinsManager.clean()
 
             elif sys.argv[1] == "--login":
+                client = Client(main_script)
+                client.get_configs()
                 print("log in")
                 login(client, credentials=True, GPIO_=True, on_start=False)
+                gm.PinsManager.clean()
 
             elif sys.argv[1] == "--addcron":
+                client = Client(main_script)
+                client.get_configs()
                 print("addcron")
                 login(client, credentials=False, GPIO_=False, on_start=True)
-
-            elif sys.argv[1] == "--stop":
-                print("stopping")
+                gm.PinsManager.clean()
 
             else:
+                TERMINATE = False
                 print("wrong argument")
                 print_manual()
 
     except KeyboardInterrupt:
-        print(f'KeyboardInterrupt, cleaning pins')
+        print(f'\n KeyboardInterrupt, cleaning pins')
         if client is not None:
             client.set_last_state()
         gm.PinsManager.clean()

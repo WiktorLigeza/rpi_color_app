@@ -10,11 +10,6 @@ from threading import Thread
 import os
 
 
-# build bin string:
-# pyinstaller main.py --onefile --hidden-import=websockets --hidden-import=websockets.legacy
-# --hidden-import=websockets.legacy.client
-
-
 class Client:
 
     def __init__(self, main_script):
