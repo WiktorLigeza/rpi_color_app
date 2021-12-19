@@ -2,12 +2,13 @@ import time
 import websockets
 import asyncio
 import json
-import pathlib
 from utils.python_animator import Animator
 from utils import credentials_manager as cm
 from utils import GPIO_manager as gm
 from threading import Thread
 import os
+import sys
+import traceback
 
 
 class Client:
@@ -20,24 +21,21 @@ class Client:
         self.url = "wss://hal9000-color-picker-websockserver.glitch.me"
         self.first = True
         self.global_path = os.getcwd()
-        self.thread = None
+        self.threads = {}
         self.msg = None
         self.pm = gm.PinsManager()
-        self.animator = Animator(
-            ["#00108a", "#152bd1", "#4454ca", "#4454ca", "#9b44ca", "#7319a4", "#550580", "#410462"],
-            self.pm)
-        self.animator.hex_to_rgb = self.hex_to_rgb
+        self.animators = {"local": Animator([], self.pm)}
 
-    def run_thread(self):
+    def run_thread(self, ctrl_TAG):
         print("threading")
-        self.thread = Thread(target=self.animator.play, args=())
-        self.thread.daemon = True
-        self.thread.start()
+        self.threads[ctrl_TAG] = Thread(target=self.animators[ctrl_TAG].play, args=())
+        self.threads[ctrl_TAG].daemon = True
+        self.threads[ctrl_TAG].start()
         return self
 
-    def show_color(self, hex_color):
+    def show_color(self, hex_color, ctrl_TAG):
         color = self.hex_to_rgb(hex_color.replace("#", ""))
-        self.pm.set_RGB(*color)
+        self.pm.set_RGB(ctrl_TAG, *color)
 
     def get_configs(self):
         cm.get_configs(self)
@@ -64,29 +62,35 @@ class Client:
             print(str(e))
         return obj
 
-    def stop_animator(self):
-        if self.animator.play_flag or self.animator.sparkling:
-            print("stopping animation")
-            self.animator.play_flag = False
-            self.animator.sparkling = False
-            self.thread.join()
-            self.thread = None
+    def stop_animator(self, ctrl_TAG):
+        if ctrl_TAG in self.animators:
+            if self.animators[ctrl_TAG].play_flag or self.animators[ctrl_TAG].sparkling:
+                print("stopping animation")
+                self.animators[ctrl_TAG].play_flag = False
+                self.animators[ctrl_TAG].sparkling = False
+                self.threads[ctrl_TAG].join()
+                self.threads[ctrl_TAG] = None
+        else:
+            self.animators[ctrl_TAG] = Animator([], self.pm)
+            self.animators[ctrl_TAG].TAG = ctrl_TAG
 
     def single_color_handler(self, dict_msg):
         color = dict_msg["payload"]["color"]
         if dict_msg["payload"]["loop"] == "steady":
-            self.show_color(dict_msg["payload"]["color"])
+            self.show_color(dict_msg["payload"]["color"], dict_msg["ctrl_TAG"])
         if dict_msg["payload"]["loop"] == "dimming":
-            self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
-            self.animator.play_breathing(self.hex_to_rgb(color.replace("#", "")),
-                                         amp=int(dict_msg["payload"]["brightness"]))
-            self.run_thread()
+            self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
+            self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animators[dict_msg["ctrl_TAG"]].play_breathing(self.hex_to_rgb(color.replace("#", "")),
+                                                                amp=int(dict_msg["payload"]["brightness"]))
+            self.run_thread(dict_msg["ctrl_TAG"])
         if dict_msg["payload"]["loop"] == "sparks":
-            self.animator.loop = "sparks"
-            self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
-            self.animator.play_sparks(self.hex_to_rgb(color.replace("#", "")),
-                                      amp=int(dict_msg["payload"]["brightness"]))
-            self.run_thread()
+            self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
+            self.animators[dict_msg["ctrl_TAG"]].loop = "sparks"
+            self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animators[dict_msg["ctrl_TAG"]].play_sparks(self.hex_to_rgb(color.replace("#", "")),
+                                                             amp=int(dict_msg["payload"]["brightness"]))
+            self.run_thread(dict_msg["ctrl_TAG"])
 
     async def listen(self):
         msg = self.get_last_state()
@@ -103,24 +107,26 @@ class Client:
                         else:
                             msg = await ws.recv()
                         type_of_data, dict_msg = self.validate_data(msg)
+                        dict_msg["ctrl_TAG"] = "local"
                         if type_of_data != -1:
                             try:
                                 if type_of_data == 1:
                                     self.msg = msg
-                                    self.stop_animator()
+                                    self.stop_animator(dict_msg["ctrl_TAG"])
                                     self.single_color_handler(dict_msg)
 
                                 if type_of_data == 2:
                                     self.msg = msg
                                     print("mood")
-                                    self.stop_animator()
+                                    print(self.animators)
+                                    self.stop_animator(dict_msg["ctrl_TAG"])
                                     print(dict_msg["payload"]["color_list"].split(","))
-                                    self.animator.colour_list = dict_msg["payload"]["color_list"].split(",")
-                                    self.animator.time_step = dict_msg["payload"]["speed"]
-                                    self.animator.speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
-                                    self.animator.loop = dict_msg["payload"]["loop"]
-                                    self.animator.play_flag = True
-                                    self.run_thread()
+                                    self.animators[dict_msg["ctrl_TAG"]].colour_list = dict_msg["payload"]["color_list"].split(",")
+                                    self.animators[dict_msg["ctrl_TAG"]].time_step = dict_msg["payload"]["speed"]
+                                    self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+                                    self.animators[dict_msg["ctrl_TAG"]].loop = dict_msg["payload"]["loop"]
+                                    self.animators[dict_msg["ctrl_TAG"]].play_flag = True
+                                    self.run_thread(dict_msg["ctrl_TAG"])
 
                                 if type_of_data == 3:
                                     print("changing configs")
@@ -140,6 +146,7 @@ class Client:
                                     msg_ = {"head": "pong", "TAG": self.rPi_TAG}
                                     await ws.send(json.dumps(msg_))
                             except Exception as e:
+                                print(traceback.format_exc())
                                 print(e)
                         else:
                             print("invalid data")

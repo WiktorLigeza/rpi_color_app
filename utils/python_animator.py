@@ -15,11 +15,11 @@ class Animator:
         self.speed = 1 / self.time_step
         self.steps = self.grid / self.time_step
         self.play_flag = False
-        self.hex_to_rgb = None
         self.pm = pm
         self.sparkling = False
         self.color = None
         self.amp = None
+        self.TAG = "local"
 
         self.R_steps = 0
         self.G_steps = 0
@@ -98,7 +98,7 @@ class Animator:
             self.show_color(amped)
 
     def show_color(self, color):
-        self.pm.set_RGB(*color)
+        self.pm.set_RGB(self.TAG, *color)
         time.sleep(self.speed)
 
     def transition(self):
@@ -115,3 +115,11 @@ class Animator:
     def clamp(x):
         x = int(x)
         return max(0, min(x, 255))
+
+    @staticmethod
+    def hex_to_rgb(hex_):
+        rgb = []
+        for i in (0, 2, 4):
+            decimal = int(hex_[i:i + 2], 16)
+            rgb.append(decimal)
+        return rgb

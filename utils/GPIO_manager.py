@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import paho.mqtt.client as paho
 
 
 class PinsManager:
@@ -10,6 +11,8 @@ class PinsManager:
         self.pwm_red = None
         self.pwm_green = None
         self.pwm_blue = None
+        self.mosquitto_client = None
+        self.set_remote_client()
 
     def set_pins(self):
         print("setting pins")
@@ -29,13 +32,29 @@ class PinsManager:
         self.pwm_red.start(0)
         self.pwm_blue.start(0)
 
-    def set_RGB(self, R, G, B):
-        R = R/255 * 100
-        G = G/255 * 100
-        B = B/255 * 100
+    def set_remote_client(self):
+        self.mosquitto_client = paho.Client()
+        if self.mosquitto_client.connect("localhost", 1883, 60) != 0:
+            self.mosquitto_client = None
+            print("connecting to mosquitto host failed miserably")
+
+    def set_remote_RGB(self, TAG, R, G, B):
+        if self.mosquitto_client is not None:
+            self.mosquitto_client.publish(TAG, f"{R}, {G}, {B}", 0)
+
+    def set_local_RGB(self, R, G, B):
+        R = R / 255 * 100
+        G = G / 255 * 100
+        B = B / 255 * 100
         self.pwm_red.ChangeDutyCycle(R)
         self.pwm_green.ChangeDutyCycle(G)
         self.pwm_blue.ChangeDutyCycle(B)
+
+    def set_RGB(self, TAG, R, G, B):
+        if TAG == "local":
+            self.set_local_RGB(R, G, B)
+        else:
+            self.set_remote_RGB(TAG, R, G, B)
 
     @staticmethod
     def clean():
