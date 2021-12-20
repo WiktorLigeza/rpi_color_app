@@ -65,11 +65,11 @@ class PinsManager:
             self.serial_dict[TAG].write(bytes(f"{R},{G},{B}\n", 'utf8'))
             self.serial_dict[TAG].readline().decode('utf-8').rstrip()
 
-    def set_RGB(self, TAG, communication, R, G, B):
-        if communication == "local":
+    def set_RGB(self, TAG, connection, R, G, B):
+        if connection == "local":
             self.set_local_RGB(R, G, B)
         else:
-            if communication == "serial":
+            if connection == "serial":
                 self.set_serial_RGB(TAG, R, G, B)
             else:
                 self.set_remote_RGB(TAG, R, G, B)

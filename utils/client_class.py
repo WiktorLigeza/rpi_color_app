@@ -33,9 +33,9 @@ class Client:
         self.threads[ctrl_TAG].start()
         return self
 
-    def show_color(self, hex_color, ctrl_TAG, communication):
+    def show_color(self, hex_color, ctrl_TAG, connection):
         color = self.hex_to_rgb(hex_color.replace("#", ""))
-        self.pm.set_RGB(ctrl_TAG, communication, *color)
+        self.pm.set_RGB(ctrl_TAG, connection, *color)
 
     def get_configs(self):
         cm.get_configs(self)
@@ -62,7 +62,7 @@ class Client:
             print(str(e))
         return obj
 
-    def stop_animator(self, ctrl_TAG, communication):
+    def stop_animator(self, ctrl_TAG, connection):
         if ctrl_TAG in self.animators:
             if self.animators[ctrl_TAG].play_flag or self.animators[ctrl_TAG].sparkling:
                 print("stopping animation")
@@ -73,22 +73,22 @@ class Client:
         else:
             self.animators[ctrl_TAG] = Animator([], self.pm)
             self.animators[ctrl_TAG].TAG = ctrl_TAG
-            self.animators[ctrl_TAG].communication = communication
+            self.animators[ctrl_TAG].connection = connection
 
     def single_color_handler(self, dict_msg):
         color = dict_msg["payload"]["color"]
         if dict_msg["payload"]["loop"] == "steady":
-            self.show_color(dict_msg["payload"]["color"], dict_msg["ctrl_TAG"], dict_msg["communication"])
+            self.show_color(dict_msg["payload"]["color"], dict_msg["ctrl_TAG"], dict_msg["connection"])
         if dict_msg["payload"]["loop"] == "dimming":
             self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
-            self.animators[dict_msg["ctrl_TAG"]].communication = dict_msg["communication"]
+            self.animators[dict_msg["ctrl_TAG"]].connection = dict_msg["connection"]
             self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
             self.animators[dict_msg["ctrl_TAG"]].play_breathing(self.hex_to_rgb(color.replace("#", "")),
                                                                 amp=int(dict_msg["payload"]["brightness"]))
             self.run_thread(dict_msg["ctrl_TAG"])
         if dict_msg["payload"]["loop"] == "sparks":
             self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
-            self.animators[dict_msg["ctrl_TAG"]].communication = dict_msg["communication"]
+            self.animators[dict_msg["ctrl_TAG"]].connection = dict_msg["connection"]
             self.animators[dict_msg["ctrl_TAG"]].loop = "sparks"
             self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
             self.animators[dict_msg["ctrl_TAG"]].play_sparks(self.hex_to_rgb(color.replace("#", "")),
@@ -115,14 +115,14 @@ class Client:
                             try:
                                 if type_of_data == 1:
                                     self.msg = msg
-                                    self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["communication"])
+                                    self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["connection"])
                                     self.single_color_handler(dict_msg)
 
                                 if type_of_data == 2:
                                     self.msg = msg
                                     print("mood")
                                     print(self.animators)
-                                    self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["communication"])
+                                    self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["connection"])
                                     print(dict_msg["payload"]["color_list"].split(","))
                                     self.animators[dict_msg["ctrl_TAG"]].colour_list = dict_msg["payload"]["color_list"].split(",")
                                     self.animators[dict_msg["ctrl_TAG"]].time_step = dict_msg["payload"]["speed"]
