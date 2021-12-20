@@ -20,6 +20,7 @@ class Animator:
         self.color = None
         self.amp = None
         self.TAG = "local"
+        self.communication = "local"
 
         self.R_steps = 0
         self.G_steps = 0
@@ -98,7 +99,7 @@ class Animator:
             self.show_color(amped)
 
     def show_color(self, color):
-        self.pm.set_RGB(self.TAG, *color)
+        self.pm.set_RGB(self.TAG, self.communication, *color)
         time.sleep(self.speed)
 
     def transition(self):
