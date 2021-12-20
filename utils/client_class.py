@@ -106,8 +106,8 @@ class Client:
                             self.first = False
                         else:
                             msg = await ws.recv()
+
                         type_of_data, dict_msg = self.validate_data(msg)
-                        dict_msg["ctrl_TAG"] = "local"
                         if type_of_data != -1:
                             try:
                                 if type_of_data == 1:

@@ -54,6 +54,7 @@ class PinsManager:
         if TAG == "local":
             self.set_local_RGB(R, G, B)
         else:
+            print("d")
             self.set_remote_RGB(TAG, R, G, B)
 
     @staticmethod
