@@ -109,7 +109,6 @@ class Client:
                             self.first = False
                         else:
                             msg = await ws.recv()
-
                         type_of_data, dict_msg = self.validate_data(msg)
                         if type_of_data != -1:
                             try:
@@ -148,6 +147,15 @@ class Client:
                                 if type_of_data == 5:
                                     msg_ = {"head": "pong", "TAG": self.rPi_TAG}
                                     await ws.send(json.dumps(msg_))
+
+                                elif type_of_data == 8:
+                                    # os.system('bash restart.sh')
+                                    print("restart")
+
+                                elif type_of_data == 9:
+                                    # os.system('sudo reboot')
+                                    print("reboot")
+
                             except Exception as e:
                                 print(traceback.format_exc())
                                 print(e)
@@ -178,6 +186,10 @@ class Client:
                 return 4, data
             if data["type"] == "ping":
                 return 5, data
+            if data["type"] == "restart":
+                return 8, data
+            if data["type"] == "reboot":
+                return 9, data
             else:
                 return -1, data
         except Exception as e:

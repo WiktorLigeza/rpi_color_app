@@ -60,7 +60,6 @@ class PinsManager:
         self.pwm_blue.ChangeDutyCycle(B)
 
     def set_serial_RGB(self, TAG, R, G, B):
-
         if TAG in self.serial_dict:
             self.serial_dict[TAG].write(bytes(f"{R},{G},{B}\n", 'utf8'))
             self.serial_dict[TAG].readline().decode('utf-8').rstrip()

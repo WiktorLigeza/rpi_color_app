@@ -3,7 +3,7 @@ import random
 
 
 class Animator:
-    def __init__(self, colour_list=None, pm=None, time_step=10):
+    def __init__(self, colour_list=None, pm=None, time_step=50):
         if colour_list is None:
             colour_list = []
         self.colour_list = colour_list
