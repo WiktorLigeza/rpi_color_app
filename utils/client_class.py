@@ -82,7 +82,7 @@ class Client:
         if dict_msg["payload"]["loop"] == "dimming":
             self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
             self.animators[dict_msg["ctrl_TAG"]].connection = dict_msg["connection"]
-            self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animators[dict_msg["ctrl_TAG"]].speed = (int(dict_msg["payload"]["speed"]))
             self.animators[dict_msg["ctrl_TAG"]].play_breathing(self.hex_to_rgb(color.replace("#", "")),
                                                                 amp=int(dict_msg["payload"]["brightness"]))
             self.run_thread(dict_msg["ctrl_TAG"])
@@ -90,7 +90,7 @@ class Client:
             self.animators[dict_msg["ctrl_TAG"]].TAG = dict_msg["ctrl_TAG"]
             self.animators[dict_msg["ctrl_TAG"]].connection = dict_msg["connection"]
             self.animators[dict_msg["ctrl_TAG"]].loop = "sparks"
-            self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+            self.animators[dict_msg["ctrl_TAG"]].speed = (int(dict_msg["payload"]["speed"]))
             self.animators[dict_msg["ctrl_TAG"]].play_sparks(self.hex_to_rgb(color.replace("#", "")),
                                                              amp=int(dict_msg["payload"]["brightness"]))
             self.run_thread(dict_msg["ctrl_TAG"])
@@ -125,7 +125,7 @@ class Client:
                                     print(dict_msg["payload"]["color_list"].split(","))
                                     self.animators[dict_msg["ctrl_TAG"]].colour_list = dict_msg["payload"]["color_list"].split(",")
                                     self.animators[dict_msg["ctrl_TAG"]].time_step = dict_msg["payload"]["speed"]
-                                    self.animators[dict_msg["ctrl_TAG"]].speed = 1 / (int(dict_msg["payload"]["speed"]) * 10)
+                                    self.animators[dict_msg["ctrl_TAG"]].speed = (int(dict_msg["payload"]["speed"]))
                                     self.animators[dict_msg["ctrl_TAG"]].loop = dict_msg["payload"]["loop"]
                                     self.animators[dict_msg["ctrl_TAG"]].play_flag = True
                                     self.run_thread(dict_msg["ctrl_TAG"])
@@ -149,12 +149,14 @@ class Client:
                                     await ws.send(json.dumps(msg_))
 
                                 elif type_of_data == 8:
-                                    # os.system('bash restart.sh')
-                                    print("restart")
+                                    print("restarting..")
+                                    self.set_last_state()
+                                    os.system('bash restart.sh  &')
 
                                 elif type_of_data == 9:
-                                    # os.system('sudo reboot')
-                                    print("reboot")
+                                    print("rebooting...")
+                                    self.set_last_state()
+                                    os.system('sudo reboot')
 
                             except Exception as e:
                                 print(traceback.format_exc())

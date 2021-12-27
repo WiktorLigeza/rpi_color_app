@@ -11,9 +11,9 @@ class Animator:
         self.colour_list_rev.reverse()
         self.time_step = time_step
         self.loop = "loop"
-        self.grid = 10000
-        self.speed = 1 / self.time_step
-        self.steps = self.grid / self.time_step
+        self.grid = 1000
+        self.speed = 100
+        self.steps = 250
         self.play_flag = False
         self.pm = pm
         self.sparkling = False
@@ -100,7 +100,7 @@ class Animator:
 
     def show_color(self, color):
         self.pm.set_RGB(self.TAG, self.connection, *color)
-        time.sleep(self.speed)
+        time.sleep(1/(self.speed*5))
 
     def transition(self):
         for i in range(1, int(self.steps)):

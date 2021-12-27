@@ -13,7 +13,8 @@ def print_manual():
     print(" to run client, type: rpiApp --run \n"
           " to change credentials, type: rpiApp --credentials \n"
           " to change GPIO pins, type: rpiApp --GPIO \n"
-          " to set application on reboot, type: rpiApp --addcron \n")
+          " to set application on reboot, type: rpiApp --addcron \n"
+          " to stop currently working application, type: rpiApp --stop \n")
 
 
 def at_exit():
@@ -33,7 +34,7 @@ if __name__ == '__main__':
         if len(sys.argv) <= 1:
             print_manual()
         else:
-            if sys.argv[1] == "--stop":
+            if "--stop" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 print("stopping..")
@@ -55,34 +56,34 @@ if __name__ == '__main__':
                                 print(f"Well, there's no process with pid {pid_}...so...yeah.")
                 quit()
 
-            elif sys.argv[1] == "--run":
+            elif "--run" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 client.start()
                 print("run")
 
-            elif sys.argv[1] == "--credentials":
+            elif "--credentials" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 print("set credentials")
                 login(client, credentials=True, GPIO_=False, on_start=False)
                 gm.PinsManager.clean()
 
-            elif sys.argv[1] == "--GPIO":
+            elif "--GPIO" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 print("set GPIO")
                 login(client, credentials=False, GPIO_=True, on_start=False)
                 gm.PinsManager.clean()
 
-            elif sys.argv[1] == "--login":
+            elif "--login" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 print("log in")
                 login(client, credentials=True, GPIO_=True, on_start=False)
                 gm.PinsManager.clean()
 
-            elif sys.argv[1] == "--addcron":
+            elif "--addcron" in sys.argv[1]:
                 client = Client(main_script)
                 client.get_configs()
                 print("addcron")
@@ -92,6 +93,7 @@ if __name__ == '__main__':
             else:
                 TERMINATE = False
                 print("wrong argument")
+                print(f"got {sys.argv[1]}")
                 print_manual()
 
     except KeyboardInterrupt:

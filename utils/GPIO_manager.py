@@ -61,8 +61,13 @@ class PinsManager:
 
     def set_serial_RGB(self, TAG, R, G, B):
         if TAG in self.serial_dict:
-            self.serial_dict[TAG].write(bytes(f"{R},{G},{B}\n", 'utf8'))
-            self.serial_dict[TAG].readline().decode('utf-8').rstrip()
+            try:
+                self.serial_dict[TAG].write(bytes(f"{R},{G},{B}\n", 'utf8'))
+                self.serial_dict[TAG].readline().decode('utf-8').rstrip()
+            except Exception as e:
+                if "smth" in str(e):
+                    del self.serial_dict[TAG]
+                    self.scan_serial()
 
     def set_RGB(self, TAG, connection, R, G, B):
         if connection == "local":
