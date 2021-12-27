@@ -9,6 +9,7 @@ from threading import Thread
 import os
 import sys
 import traceback
+import logging
 
 
 class Client:
@@ -24,7 +25,15 @@ class Client:
         self.threads = {}
         self.msg = None
         self.pm = gm.PinsManager()
+        self.logger = None
+        self.set_logger()
         self.animators = {"local": Animator([], self.pm)}
+
+    def set_logger(self):
+        logging.basicConfig(filename="logs.log",
+                            format='%(asctime)s %(message)s',
+                            filemode='w')
+        self.logger = logging.getLogger()
 
     def run_thread(self, ctrl_TAG):
         print("threading")
@@ -66,6 +75,7 @@ class Client:
         if ctrl_TAG in self.animators:
             if self.animators[ctrl_TAG].play_flag or self.animators[ctrl_TAG].sparkling:
                 print("stopping animation")
+                self.logger.warning("stopping animation")
                 self.animators[ctrl_TAG].play_flag = False
                 self.animators[ctrl_TAG].sparkling = False
                 self.threads[ctrl_TAG].join()
@@ -98,10 +108,12 @@ class Client:
     async def listen(self):
         msg = self.get_last_state()
         print("connecting..")
+        self.logger.warning("connecting...")
         while True:
             try:
                 async with websockets.connect(self.url) as ws:
                     print("connected")
+                    self.logger.warning("connected")
                     while True:
                         if self.first:
                             msg_ = {"head": "first_connection", "TAG": self.rPi_TAG}
@@ -120,6 +132,7 @@ class Client:
                                 if type_of_data == 2:
                                     self.msg = msg
                                     print("mood")
+                                    self.logger.warning("mood")
                                     print(self.animators)
                                     self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["connection"])
                                     print(dict_msg["payload"]["color_list"].split(","))
@@ -132,6 +145,7 @@ class Client:
 
                                 if type_of_data == 3:
                                     print("changing configs")
+                                    self.logger.warning("changing configs")
                                     self.rPi_TAG = dict_msg["NEW_TAG"]
                                     self.set_configs()
                                     self.first = True
@@ -139,6 +153,7 @@ class Client:
 
                                 if type_of_data == 4:
                                     print("changing key")
+                                    self.logger.warning("changing key")
                                     self.secret_key = dict_msg["new_key"]
                                     self.set_configs()
                                     self.first = True
@@ -150,11 +165,13 @@ class Client:
 
                                 elif type_of_data == 8:
                                     print("restarting..")
+                                    self.logger.warning("restarting..")
                                     self.set_last_state()
                                     os.system('bash restart.sh  &')
 
                                 elif type_of_data == 9:
                                     print("rebooting...")
+                                    self.logger.warning("rebooting...")
                                     self.set_last_state()
                                     os.system('sudo reboot')
 
@@ -163,12 +180,15 @@ class Client:
                                 print(e)
                         else:
                             print("invalid data")
+                            self.logger.error("invalid data")
             except Exception as e:
                 self.set_last_state()
-                print(e)
+                print(str(e))
+                self.logger.error(str(e))
                 time.sleep(5)
                 self.first = True
                 print("reconnecting...")
+                self.logger.warning("reconnecting...")
 
     def start(self):
         asyncio.get_event_loop().run_until_complete(self.listen())

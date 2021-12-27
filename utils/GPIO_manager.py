@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import logging
 import paho.mqtt.client as paho
 import serial
 import glob
@@ -9,6 +10,8 @@ class PinsManager:
         self.R_pin = None
         self.G_pin = None
         self.B_pin = None
+        self.logger = None
+        self.set_logger()
         self.hz = 100
         self.pwm_red = None
         self.pwm_green = None
@@ -18,8 +21,15 @@ class PinsManager:
         self.set_remote_client()
         self.scan_serial()
 
+    def set_logger(self):
+        logging.basicConfig(filename="logs.log",
+                            format='%(asctime)s %(message)s',
+                            filemode='w')
+        self.logger = logging.getLogger()
+
     def set_pins(self):
         print("setting pins")
+        self.logger.warning("setting pins")
         GPIO.setmode(GPIO.BCM)  # Tell the GPIO library we are using the breakout board pin numbering system
         GPIO.setwarnings(False)  # Tell the GPIO library not to issue warnings
 
@@ -41,15 +51,21 @@ class PinsManager:
         if self.mosquitto_client.connect("localhost", 1883, 60) != 0:
             self.mosquitto_client = None
             print("connecting to mosquitto host failed miserably")
+            self.logger.error("connecting to mosquitto host failed miserably")
 
     def set_serial_client(self, path, TAG):
         print(f"found device: {path} with tag: {TAG}")
+        self.logger.warning(f"found device: {path} with tag: {TAG}")
         self.serial_dict[TAG] = serial.Serial(path, 250000, timeout=1)
         self.serial_dict[TAG].reset_input_buffer()
 
     def set_remote_RGB(self, TAG, R, G, B):
-        if self.mosquitto_client is not None:
-            self.mosquitto_client.publish(TAG, f"{R}, {G}, {B}", 0)
+        try:
+            if self.mosquitto_client is not None:
+                self.mosquitto_client.publish(TAG, f"{R}, {G}, {B}", 0)
+        except Exception as e:
+            print(str(e))
+            self.logger.error(f"{str(e)}")
 
     def set_local_RGB(self, R, G, B):
         R = R / 255 * 100
@@ -66,6 +82,7 @@ class PinsManager:
                 self.serial_dict[TAG].readline().decode('utf-8').rstrip()
             except Exception as e:
                 if "smth" in str(e):
+                    self.logger.error(f"{str(e)}")
                     del self.serial_dict[TAG]
                     self.scan_serial()
 
@@ -80,6 +97,7 @@ class PinsManager:
 
     def scan_serial(self):
         print("scanning for USB devices..")
+        self.logger.warning("scanning for USB devices..")
         for dev in glob.glob("/dev/*"):
             if "ttyUSB" in dev:
                 try:
