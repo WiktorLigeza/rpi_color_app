@@ -24,11 +24,17 @@ def get_configs(obj):
         obj.pm.R_pin = int(config['GPIO']['R'])
         obj.pm.G_pin = int(config['GPIO']['G'])
         obj.pm.B_pin = int(config['GPIO']['B'])
+        obj.pm.W_pin = int(config['GPIO']['W'])
 
         if obj.rPi_TAG == '' or obj.secret_key == '':
             login(obj)
         print("USING:\n    TAG: {}\n    secret_key: {}\n    server url: {}\n    GPIO: R:{}, G:{}, B{}\n".
               format(obj.rPi_TAG, obj.secret_key, obj.url, obj.pm.R_pin, obj.pm.G_pin, obj.pm.B_pin))
+        if obj.pm.W_pin == -1:
+            print("    White pin is disabled")
+        else:
+            print(f"    White pin:{obj.pm.W_pin}\n")
+
     except Exception as e:
         print("error reading config file: {}".format(e))
         obj.rPi_TAG = ""
@@ -52,6 +58,8 @@ def set_configs(obj):
             config.set('GPIO', 'G', str(obj.pm.G_pin))
         if obj.pm.B_pin is not None:
             config.set('GPIO', 'B', str(obj.pm.B_pin))
+        if obj.pm.W_pin is not None:
+            config.set('GPIO', 'W', str(obj.pm.W_pin))
         with open(path, "w") as configfile:
             config.write(configfile)
         print("configs updated")
@@ -87,13 +95,14 @@ def login(obj, credentials=True, GPIO_=True, on_start=True):
         secret_key = input("enter secret-key: ")
         obj.secret_key = sha256_crypt.encrypt(str(secret_key))
     if GPIO_:
-        print("using GPIO pins: R:{}, G:{}, B{}".format(obj.pm.R_pin, obj.pm.G_pin, obj.pm.B_pin))
+        print("using GPIO pins: R:{}, G:{}, B:{}, W:{}".format(obj.pm.R_pin, obj.pm.G_pin, obj.pm.B_pin, obj.pm.W_pin))
         while True:
             gpi_change = input("would you like to change it [y/yes, n/no]: ")
             if 'y' in gpi_change:
-                obj.pm.R_pin  = input("enter R pin: ")
-                obj.pm.G_pin = input("enter R pin: ")
-                obj.pm.B_pin  = input("enter B pin: ")
+                obj.pm.R_pin  = int(input("enter R pin: "))
+                obj.pm.G_pin = int(input("enter R pin: "))
+                obj.pm.B_pin  = int(input("enter B pin: "))
+                obj.pm.W_pin  = int(input("enter W pin (type -1 to disable white pin): "))
                 break
             if 'n' in gpi_change:
                 break

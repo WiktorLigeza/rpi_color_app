@@ -28,6 +28,8 @@ class Client:
         self.logger = None
         self.set_logger()
         self.animators = {"local": Animator([], self.pm)}
+        self.TUD = False
+        self.KUD = False
 
     def set_logger(self):
         logging.basicConfig(filename="logs.log",
@@ -119,6 +121,10 @@ class Client:
                             msg_ = {"head": "first_connection", "TAG": self.rPi_TAG}
                             await ws.send(json.dumps(msg_))
                             self.first = False
+                            if self.TUD or self.KUD:
+                                self.TUD = False
+                                self.KUD = False
+                                msg = None
                         else:
                             msg = await ws.recv()
                         type_of_data, dict_msg = self.validate_data(msg)
@@ -136,7 +142,8 @@ class Client:
                                     print(self.animators)
                                     self.stop_animator(dict_msg["ctrl_TAG"], dict_msg["connection"])
                                     print(dict_msg["payload"]["color_list"].split(","))
-                                    self.animators[dict_msg["ctrl_TAG"]].colour_list = dict_msg["payload"]["color_list"].split(",")
+                                    self.animators[dict_msg["ctrl_TAG"]].colour_list = dict_msg["payload"][
+                                        "color_list"].split(",")
                                     self.animators[dict_msg["ctrl_TAG"]].time_step = dict_msg["payload"]["speed"]
                                     self.animators[dict_msg["ctrl_TAG"]].speed = (int(dict_msg["payload"]["speed"]))
                                     self.animators[dict_msg["ctrl_TAG"]].loop = dict_msg["payload"]["loop"]
@@ -149,6 +156,7 @@ class Client:
                                     self.rPi_TAG = dict_msg["NEW_TAG"]
                                     self.set_configs()
                                     self.first = True
+                                    self.TUD = True
                                     break
 
                                 if type_of_data == 4:
@@ -157,11 +165,17 @@ class Client:
                                     self.secret_key = dict_msg["new_key"]
                                     self.set_configs()
                                     self.first = True
+                                    self.KUD = True
                                     break
 
                                 if type_of_data == 5:
                                     msg_ = {"head": "pong", "TAG": self.rPi_TAG}
                                     await ws.send(json.dumps(msg_))
+
+                                if type_of_data == 6:
+                                    self.pm.set_W(dict_msg["ctrl_TAG"],
+                                                  dict_msg["connection"],
+                                                  int(dict_msg["brightness"]))
 
                                 elif type_of_data == 8:
                                     print("restarting..")
@@ -208,6 +222,8 @@ class Client:
                 return 4, data
             if data["type"] == "ping":
                 return 5, data
+            if data["type"] == "white":
+                return 6, data
             if data["type"] == "restart":
                 return 8, data
             if data["type"] == "reboot":
